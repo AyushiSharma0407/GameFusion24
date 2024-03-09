@@ -4,50 +4,108 @@ public class PlayerController : MonoBehaviour
 {
     public float moveSpeed;
     public float jumpForce = 10f;
+    public int maxHealth = 100;
+    private int currentHealth;
     public LayerMask groundLayer;
     private CapsuleCollider2D capsuleCollider;
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private bool isGrounded;
 
+    public GameObject enemyPrefab;
+    public Transform[] enemySpawnPoints;
+    public float enemySpawnInterval = 5f;
+    private float nextSpawnTime;
+
     private void Start()
     {
-        // Get the CapsuleCollider2D component on start
         capsuleCollider = GetComponent<CapsuleCollider2D>();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        currentHealth = maxHealth;
+        nextSpawnTime = Time.time;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        // Check if the capsule collider is touching the layer tagged "Ground"
         isGrounded = Physics2D.OverlapCapsule(capsuleCollider.bounds.center, capsuleCollider.bounds.size, capsuleCollider.direction, 0f, groundLayer);
 
-        // Log the grounded status to the console for debugging
-        Debug.Log("Grounded: " + isGrounded);
-
-        // Move the player
         float horizontalInput = Input.GetAxis("Horizontal");
         Vector3 movement = new Vector3(horizontalInput, 0f, 0f) * moveSpeed * Time.deltaTime;
         transform.Translate(movement);
 
-        // Flip the sprite when moving left
         if (horizontalInput < 0)
-        {
             spriteRenderer.flipX = true;
-        }
-        // Flip the sprite back when moving right
         else if (horizontalInput > 0)
-        {
             spriteRenderer.flipX = false;
+
+        if (isGrounded && Input.GetKeyDown(KeyCode.Space))
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+
+        // Spawning enemies
+        if (Time.time >= nextSpawnTime)
+        {
+            SpawnEnemy();
+            nextSpawnTime = Time.time + enemySpawnInterval;
         }
 
-        // Jump logic
-        if (isGrounded && Input.GetKeyDown(KeyCode.Space))
+        // Attacking enemies
+        if (Input.GetMouseButtonDown(0)) // Left mouse button
         {
-            // Add upward force to simulate jumping
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+
+            // Trigger the attack animation
+            GetComponent<Animator>().SetTrigger("isAttackingFire");
+            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+
+            if (hit.collider != null)
+            {
+                EnemyController enemy = hit.collider.GetComponent<EnemyController>();
+                if (enemy != null)
+                {
+                    enemy.TakeDamage(100); // Destroy enemy in one hit
+                }
+            }
         }
+    }
+
+
+    void SpawnEnemy()
+    {
+        if (enemyPrefab != null && enemySpawnPoints.Length > 0)
+        {
+            int randomIndex = Random.Range(0, enemySpawnPoints.Length);
+            Transform spawnPoint = enemySpawnPoints[randomIndex];
+            Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
+        }
+    }
+
+    void Attack()
+    {
+        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+
+        if (hit.collider != null)
+        {
+            EnemyController enemy = hit.collider.GetComponent<EnemyController>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(100); // Destroy enemy in one hit
+            }
+        }
+
+    }
+
+    public void TakeDamage(int damageAmount)
+    {
+        currentHealth -= damageAmount;
+        if (currentHealth <= 0)
+        {
+            // Player dies
+            Destroy(gameObject); 
+        }
+    }
+
+    public void Heal(int healAmount)
+    {
+        currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
     }
 }
