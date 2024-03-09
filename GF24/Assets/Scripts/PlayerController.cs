@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundLayer;
     private CapsuleCollider2D capsuleCollider;
     private Rigidbody2D rb;
+    private SpriteRenderer spriteRenderer;
     private bool isGrounded;
 
     private void Start()
@@ -14,6 +15,7 @@ public class PlayerController : MonoBehaviour
         // Get the CapsuleCollider2D component on start
         capsuleCollider = GetComponent<CapsuleCollider2D>();
         rb = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     // Update is called once per frame
@@ -29,6 +31,17 @@ public class PlayerController : MonoBehaviour
         float horizontalInput = Input.GetAxis("Horizontal");
         Vector3 movement = new Vector3(horizontalInput, 0f, 0f) * moveSpeed * Time.deltaTime;
         transform.Translate(movement);
+
+        // Flip the sprite when moving left
+        if (horizontalInput < 0)
+        {
+            spriteRenderer.flipX = true;
+        }
+        // Flip the sprite back when moving right
+        else if (horizontalInput > 0)
+        {
+            spriteRenderer.flipX = false;
+        }
 
         // Jump logic
         if (isGrounded && Input.GetKeyDown(KeyCode.Space))
