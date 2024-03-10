@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 public class EnemyController : MonoBehaviour
 {
@@ -9,16 +8,22 @@ public class EnemyController : MonoBehaviour
     private Transform player;
     private Animator animator;
     public float detectionRange = 2f; // The range at which the enemy can detect the player
-    private bool canDetect = false; // Whether the enemy can detect the player
-    private bool isJumping = false; // Flag to check if the enemy is currently jumping
-    private bool isGrounded = true; // Flag to check if the enemy is on the ground
-    private float jumpForce = 5f; // The force applied when the enemy jumps
+    private bool canDetectFire = false; // Whether the enemy can detect the player for fire enemy
+    private bool canDetectWater = false; // Whether the enemy can detect the player for water enemy
+    private bool canDetectGrass = false; // Whether the enemy can detect the player for grass enemy
+    private string enemyType; // Type of enemy
 
     void Start()
     {
         currentHealth = maxHealth;
         player = GameObject.FindGameObjectWithTag("Player").transform;
         animator = GetComponent<Animator>();
+        if (gameObject.CompareTag("FireEnemy"))
+            enemyType = "Fire";
+        else if (gameObject.CompareTag("WaterEnemy"))
+            enemyType = "Water";
+        else if (gameObject.CompareTag("GrassEnemy"))
+            enemyType = "Grass";
     }
 
     void Update()
@@ -31,39 +36,58 @@ public class EnemyController : MonoBehaviour
                 // Check if the player is within the detection range and has the "Player" tag
                 if (player.CompareTag("Player"))
                 {
-                    canDetect = true;
+                    SetCanDetectByType(true);
                 }
                 else
                 {
-                    canDetect = false;
+                    SetCanDetectByType(false);
                 }
             }
             else
             {
-                canDetect = false;
+                SetCanDetectByType(false);
             }
         }
 
-        if (canDetect)
+        // Set animation parameters based on enemy type and detection status
+        switch (enemyType)
         {
-            // If the enemy can detect the player, perform actions like moving towards the player or triggering animations
-            MoveTowardsPlayer();
-            animator.SetBool("canDetect", true);
-
-            if (!isJumping && isGrounded)
-            {
-                // Check if the enemy is not currently jumping and is on the ground
-                StartCoroutine(JumpCoroutine());
-            }
+            case "Fire":
+                animator.SetBool("canDetectFire", true);
+                animator.SetBool("canDetectWater", false);
+                animator.SetBool("canDetectGrass", false);
+                break;
+            case "Water":
+                animator.SetBool("canDetectFire", false);
+                animator.SetBool("canDetectWater", true);
+                animator.SetBool("canDetectGrass", false);
+                break;
+            case "Grass":
+                animator.SetBool("canDetectFire", false);
+                animator.SetBool("canDetectWater", false);
+                animator.SetBool("canDetectGrass", true);
+                break;
+            default:
+                break;
         }
-        else
+
+        // Move towards player if grounded
+        MoveTowardsPlayer();
+    }
+
+    void SetCanDetectByType(bool value)
+    {
+        switch (enemyType)
         {
-            if (!isJumping && isGrounded)
-            {
-                // Check if the enemy is not currently jumping and is on the ground
-                StartCoroutine(JumpCoroutine());
-            }
-            animator.SetBool("canDetect", false);
+            case "Fire":
+                canDetectFire = value;
+                break;
+            case "Water":
+                canDetectWater = value;
+                break;
+            case "Grass":
+                canDetectGrass = value;
+                break;
         }
     }
 
@@ -73,33 +97,6 @@ public class EnemyController : MonoBehaviour
         {
             transform.position = Vector2.MoveTowards(transform.position, player.position, Time.deltaTime * 3f);
         }
-    }
-
-    IEnumerator JumpCoroutine()
-    {
-        // Set the jumping flag to true to avoid multiple jumps at the same time
-        isJumping = true;
-
-        // Perform actions before jumping (e.g., coming down to the ground and returning to idle animation)
-        // Set the "isGrounded" flag to false before jumping
-        isGrounded = false;
-        animator.SetBool("isGrounded", false);
-
-        // Wait for a short duration to simulate the time before the jump
-        yield return new WaitForSeconds(1f);
-
-        // Apply jump force
-        GetComponent<Rigidbody2D>().AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-
-        // Wait for a short duration to simulate the jump animation
-        yield return new WaitForSeconds(1f);
-
-        // Set the "isGrounded" flag to true after the jump is complete
-        isGrounded = true;
-        animator.SetBool("isGrounded", true);
-
-        // Set the jumping flag to false to allow the enemy to jump again
-        isJumping = false;
     }
 
     void OnCollisionEnter2D(Collision2D collision)
@@ -115,12 +112,98 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    public void TakeDamage(int damageAmount)
+    public void TakeDamage(string weapon)
     {
+        int damageAmount = CalculateDamage(weapon);
         currentHealth -= damageAmount;
         if (currentHealth <= 0)
         {
             Destroy(gameObject);
+        }
+    }
+
+    int CalculateDamage(string weapon)
+    {
+        int damageAmount = 0;
+
+        switch (weapon)
+        {
+            case "Fire":
+                damageAmount = CalculateDamageByType("Fire");
+                break;
+            case "Water":
+                damageAmount = CalculateDamageByType("Water");
+                break;
+            case "Grass":
+                damageAmount = CalculateDamageByType("Grass");
+                break;
+        }
+
+        return damageAmount;
+    }
+
+    int CalculateDamageByType(string weaponType)
+    {
+        int damageAmount = 0;
+
+        switch (enemyType)
+        {
+            case "Fire":
+                damageAmount = CalculateDamageToFire(weaponType);
+                break;
+            case "Water":
+                damageAmount = CalculateDamageToWater(weaponType);
+                break;
+            case "Grass":
+                damageAmount = CalculateDamageToGrass(weaponType);
+                break;
+        }
+
+        return damageAmount;
+    }
+
+    int CalculateDamageToFire(string weaponType)
+    {
+        switch (weaponType)
+        {
+            case "Fire":
+                return 50;
+            case "Water":
+                return 100;
+            case "Grass":
+                return 25;
+            default:
+                return 0;
+        }
+    }
+
+    int CalculateDamageToWater(string weaponType)
+    {
+        switch (weaponType)
+        {
+            case "Fire":
+                return 25;
+            case "Water":
+                return 50;
+            case "Grass":
+                return 100;
+            default:
+                return 0;
+        }
+    }
+
+    int CalculateDamageToGrass(string weaponType)
+    {
+        switch (weaponType)
+        {
+            case "Fire":
+                return 100;
+            case "Water":
+                return 25;
+            case "Grass":
+                return 50;
+            default:
+                return 0;
         }
     }
 }
