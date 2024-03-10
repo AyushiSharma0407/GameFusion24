@@ -54,17 +54,15 @@ public class EnemyController : MonoBehaviour
         {
             case "Fire":
                 animator.SetBool("canDetectFire", true);
-                animator.SetBool("canDetectWater", false);
-                animator.SetBool("canDetectGrass", false);
+
                 break;
             case "Water":
-                animator.SetBool("canDetectFire", false);
+
                 animator.SetBool("canDetectWater", true);
-                animator.SetBool("canDetectGrass", false);
+
                 break;
             case "Grass":
-                animator.SetBool("canDetectFire", false);
-                animator.SetBool("canDetectWater", false);
+
                 animator.SetBool("canDetectGrass", true);
                 break;
             default:

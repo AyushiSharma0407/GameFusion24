@@ -6,6 +6,7 @@ TagManager:
   tags:
   - FireEnemy
   - WaterEnemy
+  - GrassEnemy
   layers:
   - Default
   - TransparentFX

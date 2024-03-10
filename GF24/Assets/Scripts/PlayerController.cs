@@ -11,7 +11,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private bool isGrounded;
-
+    public HealthUI healthUI;
     public GameObject[] enemyPrefabs; // Array to hold different enemy types
     public Transform[] enemySpawnPoints;
     public float enemySpawnInterval = 5f;
@@ -98,11 +98,21 @@ public class PlayerController : MonoBehaviour
     public void TakeDamage(int damageAmount)
     {
         currentHealth -= damageAmount;
+        healthUI.UpdateHearts(currentHealth);
         if (currentHealth <= 0)
         {
-            // Player dies
-            Destroy(gameObject);
+            // Play death animation
+            GetComponent<Animator>().SetBool("isDead", true);
+
+            // Invoke a method to destroy the player GameObject after the animation duration
+            Invoke("DestroyPlayer", 1f);
         }
+    }
+
+    void DestroyPlayer()
+    {
+        // Destroy the player GameObject
+        Destroy(gameObject);
     }
 
     public void Heal(int healAmount)
