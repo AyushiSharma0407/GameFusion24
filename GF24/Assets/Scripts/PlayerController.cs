@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
@@ -18,6 +19,14 @@ public class PlayerController : MonoBehaviour
     private float nextSpawnTime;
 
     private string currentWeapon = "Fire"; // Default weapon
+    private bool isDead; // Flag to prevent multiple invocations of death
+
+    // Placeholder for the duration of the death animation
+    private float deathAnimationDuration = 1f;
+
+    // Declare delegate and event for player death
+    public delegate void PlayerDeath();
+    public static event PlayerDeath OnPlayerDeath;
 
     private void Start()
     {
@@ -26,6 +35,7 @@ public class PlayerController : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         currentHealth = maxHealth;
         nextSpawnTime = Time.time;
+        isDead = false;
     }
 
     void Update()
@@ -73,8 +83,22 @@ public class PlayerController : MonoBehaviour
         {
             int randomIndex = Random.Range(0, enemySpawnPoints.Length);
             Transform spawnPoint = enemySpawnPoints[randomIndex];
-            GameObject enemyPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)]; // Select random enemy prefab
-            Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
+
+            // Adjust the Z-coordinate to ensure enemies spawn in front
+            Vector3 spawnPosition = new Vector3(spawnPoint.position.x, spawnPoint.position.y, 0f);
+
+            GameObject enemyPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
+
+            // Set sorting order
+            SpriteRenderer enemyRenderer = enemyPrefab.GetComponent<SpriteRenderer>();
+            enemyRenderer.sortingLayerName = "YourSortingLayerName"; // Set the desired sorting layer
+            enemyRenderer.sortingOrder = 3; // Set the desired order in layer
+
+            // Instantiate enemy
+            GameObject enemyInstance = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+
+            // Adjust box collider if needed
+            BoxCollider2D enemyCollider = enemyInstance.GetComponent<BoxCollider2D>();
         }
     }
 
@@ -99,20 +123,25 @@ public class PlayerController : MonoBehaviour
     {
         currentHealth -= damageAmount;
         healthUI.UpdateHearts(currentHealth);
-        if (currentHealth <= 0)
+        if (currentHealth <= 0 && !isDead)
         {
+            isDead = true; // Prevent multiple invocations
+
             // Play death animation
             GetComponent<Animator>().SetBool("isDead", true);
 
-            // Invoke a method to destroy the player GameObject after the animation duration
-            Invoke("DestroyPlayer", 1f);
+            // Delay the game over logic to allow the death animation to complete
+            StartCoroutine(GameOverCoroutine());
         }
     }
 
-    void DestroyPlayer()
+    IEnumerator GameOverCoroutine()
     {
-        // Destroy the player GameObject
-        Destroy(gameObject);
+        // Wait for the duration of the death animation
+        yield return new WaitForSeconds(deathAnimationDuration);
+
+        // Invoke event to signal player death
+        OnPlayerDeath?.Invoke();
     }
 
     public void Heal(int healAmount)

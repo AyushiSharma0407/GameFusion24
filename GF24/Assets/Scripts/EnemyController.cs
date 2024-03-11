@@ -12,6 +12,7 @@ public class EnemyController : MonoBehaviour
     private bool canDetectWater = false; // Whether the enemy can detect the player for water enemy
     private bool canDetectGrass = false; // Whether the enemy can detect the player for grass enemy
     private string enemyType; // Type of enemy
+    private GameOverManager gameOverManager;
 
     void Start()
     {
@@ -24,6 +25,7 @@ public class EnemyController : MonoBehaviour
             enemyType = "Water";
         else if (gameObject.CompareTag("GrassEnemy"))
             enemyType = "Grass";
+        gameOverManager = GameObject.FindObjectOfType<GameOverManager>();
     }
 
     void Update()
@@ -54,15 +56,11 @@ public class EnemyController : MonoBehaviour
         {
             case "Fire":
                 animator.SetBool("canDetectFire", true);
-
                 break;
             case "Water":
-
                 animator.SetBool("canDetectWater", true);
-
                 break;
             case "Grass":
-
                 animator.SetBool("canDetectGrass", true);
                 break;
             default:
@@ -105,6 +103,7 @@ public class EnemyController : MonoBehaviour
             if (playerController != null)
             {
                 playerController.TakeDamage(damage);
+                // Do not increase score here
                 Destroy(gameObject);
             }
         }
@@ -116,6 +115,8 @@ public class EnemyController : MonoBehaviour
         currentHealth -= damageAmount;
         if (currentHealth <= 0)
         {
+            // Increase score when enemy is killed
+            gameOverManager.IncreaseScore(10);
             Destroy(gameObject);
         }
     }
